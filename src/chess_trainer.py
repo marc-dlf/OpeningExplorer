@@ -70,4 +70,25 @@ class ChessTrainer:
             depth += 1
             mymove = not mymove
 
-    def extract_most_interesting_positions(self):
+    def extract_most_interesting_positions(self, white: bool, thresh=3):
+        init_board = chess.Board()
+        pos_q = queue.Queue()
+        output_q = queue.PriorityQueue()
+        if white:
+            tree = self.game_tree_white
+        else:
+            self.game_tree_black
+        visited = set()
+        pos_q.put(init_board.fen())
+        visited.add(init_board.fen())
+        while not pos_q.empty():
+            curr_pos = pos_q.get()
+            for child_id in tree[curr_pos].children:
+                if child_id in tree.keys():
+                    child = tree[child_id]
+                    if child_id not in visited:
+                        pos_q.put(child.id)
+                        if not child.mymove and child.n_games() >= thresh:
+                            output_q.put((child.win_rate(), child.id))
+            visited.add(curr_pos)
+        return output_q

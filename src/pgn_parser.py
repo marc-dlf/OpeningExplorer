@@ -1,6 +1,25 @@
 import re
 
 
+class Move:
+    def __init__(self, move):
+        self.val = move
+        self.next = None
+
+
+class Game:
+    def __init__(self, move):
+        self.first_move = move
+
+    def unroll_game(self):
+        move = self.first_move
+        out_str = ""
+        while move is not None:
+            out_str += f"{move.val} "
+            move = move.next
+        return out_str.strip()
+
+
 class PGNParser:
     def __init__(self, raw_txt, username, init=True):
         self.raw_txt = raw_txt
@@ -52,22 +71,3 @@ class PGNParser:
                 return "Lose"
         except:
             raise ValueError("Pattern did not permit to find result")
-
-
-class Move:
-    def __init__(self, move):
-        self.val = move
-        self.next = None
-
-
-class Game:
-    def __init__(self, move):
-        self.first_move = move
-
-    def unroll_game(self):
-        move = self.first_move
-        out_str = ""
-        while move is not None:
-            out_str += f"{move.val} "
-            move = move.next
-        return out_str.strip()

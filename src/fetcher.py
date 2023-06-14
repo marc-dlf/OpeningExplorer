@@ -1,6 +1,5 @@
 import requests
 import re
-from pathlib import Path
 import queue
 from datetime import datetime
 
