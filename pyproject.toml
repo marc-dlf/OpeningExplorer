@@ -1,0 +1,22 @@
+[build-system]
+build-backend = "poetry.core.masonry.api"
+requires = ["setuptools", "poetry_core>=1.1.12"]
+
+[tool.poetry]
+authors = [
+     "Marc LF"
+]
+description = "Omni AI model training and creation"
+name = "chess-trainer"
+packages = [{ include = "src" }]
+version = "0.0.1"
+
+[tool.poetry.dependencies]
+python = "~3.10"
+requests = "2.31.0"
+pandas = "2.0.2"
+
+[tool.pytest.ini_options]
+pythonpath = [
+  "."
+]
