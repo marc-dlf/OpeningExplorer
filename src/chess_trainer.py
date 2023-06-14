@@ -53,19 +53,19 @@ class ChessTrainer:
 
         mymove = pgn.color == "White"
         visited = set()
+
         while move is not None and depth <= max_depth:
-            print(move.val)
             fen = board.fen()
-            node = tree.get(fen, TreeNode(fen, mymove))
+            if fen not in tree.keys():
+                node = TreeNode(fen, mymove)
+                tree[fen] = node
+            else:
+                node = tree[fen]
             if fen not in visited:
                 node.increment_cnt(pgn.result)
                 visited.add(fen)
-            try:
-                board.push_san(move.val)
-            except:
-                print(board)
-                raise ValueError()
-            node.children.add(board.fen)
+            board.push_san(move.val)
+            node.children.add(board.fen())
             move = move.next
             depth += 1
             mymove = not mymove

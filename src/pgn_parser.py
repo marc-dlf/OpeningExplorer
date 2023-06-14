@@ -17,7 +17,7 @@ class PGNParser:
         game_re = rf"(?<=\n)1\..*"
         try:
             game = re.findall(game_re, self.raw_txt)[0]
-            cleaning_re = r"[A-Za-z]+[0-9]"
+            cleaning_re = r"[A-Za-z][0-9][A-Za-z][0-9]|[A-Za-z]+[0-9]|O-O-O|O-O"
             clean_game = re.findall(cleaning_re, game)
             move = Move(clean_game[0])
             game = Game(move)

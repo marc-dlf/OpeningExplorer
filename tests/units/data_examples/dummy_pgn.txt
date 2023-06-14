@@ -20,7 +20,7 @@
 [EndTime "15:45:32"]
 [Link "https://www.chess.com/game/live/75743501325"]
 
-1. e4 {[%clk 0:05:05]} 1... e5 {[%clk 0:05:03.9]} 1-0
+1. e4 {[%clk 0:05:05]} 1... e5 {[%clk 0:05:03.9]} 2. O-O {[%clk 0:05:08.2]} 2... O-O-O {[%clk 0:05:08.9]} 3. N8e7 {[%clk 0:05:08.2]} 1-0
 
 
 [Event "Live Chess"]

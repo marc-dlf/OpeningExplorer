@@ -13,6 +13,7 @@ def test_valid_win_ratio(complete_pgn, username):
     board = chess.Board()
     board.push_san("e4")
 
-    node = trainer.game_tree_white[board.fen]
+    node = trainer.game_tree_white[board.fen()]
+    print(node.win_cnt, node.lose_cnt, node.draw_cnt)
 
     assert node.win_rate() == 0.4
