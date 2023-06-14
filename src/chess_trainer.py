@@ -51,7 +51,7 @@ class ChessTrainer:
         move = game.first_move
         depth = 0
 
-        mymove = pgn.color == "White"
+        mymove = not (pgn.color == "White")
         visited = set()
 
         while move is not None and depth <= max_depth:
@@ -69,3 +69,5 @@ class ChessTrainer:
             move = move.next
             depth += 1
             mymove = not mymove
+
+    def extract_most_interesting_positions(self):
