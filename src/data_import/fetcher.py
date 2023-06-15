@@ -11,26 +11,24 @@ from src.constants import ADDRESS_ROOT, DATA_FOLDER
 
 
 class Fetcher:
-    def __init__(self, username, start_month, end_month=None):
+    def __init__(self, username):
         self.username = username
-        self.start_month = start_month
-        self.end_month = end_month
 
-    def download_all(self):
+    def download_all(self, start_month, end_month=None):
         output_folder = Path(DATA_FOLDER) / self.username
-        os.makedirs(output_folder)
-        end_month = self.end_month
         if end_month is None:
             end_month = datetime.strftime(datetime.now(), "%Y-%m")
         month_list = (
-            pd.date_range(self.start_month, end_month, freq="MS")
-            .strftime("%Y-%m")
-            .tolist()
+            pd.date_range(start_month, end_month, freq="MS").strftime("%Y-%m").tolist()
         )
+        os.makedirs(output_folder)
         for y_m in month_list:
             pgn = self.fetch_month(y_m)
-            with open(output_folder / f"{y_m}.txt", "w") as out_file:
-                out_file.write(pgn)
+            if pgn is not None:
+                print(output_folder / f"{y_m}.txt")
+                with open(output_folder / f"{y_m}.txt", "w") as out_file:
+                    print()
+                    out_file.write(pgn)
 
     def fetch_month(self, year_month: str):
         year_str, month_str = year_month.split("-")
@@ -42,9 +40,9 @@ class Fetcher:
         # API returned a file of PGN
         pgn = r.text
         if len(pgn) == 0:
-            return []
+            return None
         else:
-            return Fetcher.split(pgn)
+            return pgn
 
     def push_into_queue(self, pgns_list):
         q = queue.Queue()
@@ -53,9 +51,3 @@ class Fetcher:
                 q.put(pgn)
 
         return q
-
-    @staticmethod
-    def split(raw_pgn):
-        regex = r'(?<=\[Event "Live Chess"\])[\s\S]*?(?=\[Event "Live Chess"\]|$)'
-        matches = re.findall(regex, raw_pgn, re.DOTALL)
-        return matches

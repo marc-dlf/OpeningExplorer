@@ -1,9 +1,13 @@
 from src.data_import.pgn import PGN
-from src.data_import.fetcher import Fetcher
+
+
+def test_split_good_number_of_games(dummy_pgn):
+    pgns = PGN.split(dummy_pgn)
+    assert len(pgns) == 3
 
 
 def test_parse_color(dummy_pgn, username):
-    pgns = Fetcher.split(dummy_pgn)
+    pgns = PGN.split(dummy_pgn)
 
     pgn1 = PGN(pgns[0], username, init=False)
     assert pgn1.parse_color() == "white"
@@ -13,7 +17,7 @@ def test_parse_color(dummy_pgn, username):
 
 
 def test_parse_result(dummy_pgn, username):
-    pgns = Fetcher.split(dummy_pgn)
+    pgns = PGN.split(dummy_pgn)
 
     pgn1 = PGN(pgns[0], username, init=False)
     assert pgn1.parse_result() == "win"
@@ -26,7 +30,7 @@ def test_parse_result(dummy_pgn, username):
 
 
 def test_parse_result(dummy_pgn, username):
-    pgns = Fetcher.split(dummy_pgn)
+    pgns = PGN.split(dummy_pgn)
 
     pgn1 = PGN(pgns[0], username, init=False)
     # Example with castling

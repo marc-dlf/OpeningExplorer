@@ -1,6 +1,10 @@
 import queue
 import chess
+from pathlib import Path
 from src.data_import.pgn import PGN
+from src.data_import.fetcher import Fetcher
+from src.constants import DATA_FOLDER
+import os
 
 
 class PositionNode:
@@ -30,14 +34,33 @@ class PositionNode:
 
 
 class GameTree:
-    def __init__(self, username):
-        self.username = username
+    def __init__(self):
         self.white = {}
         self.black = {}
 
-    def build_from_pgn_queue(self, pgn_queue: queue.Queue, max_depth):
-        while not pgn_queue.empty():
-            pgn = PGN(pgn_queue.get(), self.username)
+    def load_tree(
+        self, username, max_depth, start_month=None, end_month=None, str_init=None
+    ):
+        if str_init is not None:
+            self.process_multi_pgn(str_init, max_depth, username)
+        else:
+            if username not in os.listdir(DATA_FOLDER):
+                f = Fetcher(username)
+                f.download_all(start_month, end_month)
+
+            path = Path(DATA_FOLDER) / username
+            for pgn_month in os.listdir(path):
+                with open(path / f"{pgn_month}", "r") as f:
+                    multi_pgn = f.read()
+                self.process_multi_pgn(multi_pgn, max_depth, username)
+
+    def process_multi_pgn(self, multi_pgn, max_depth, username):
+        for pgn_txt in PGN.split(multi_pgn):
+            try:
+                pgn = PGN(pgn_txt, username, True)
+            except:
+                print(f"Failed extraction for : {pgn_txt}")
+                continue
             self.process_pgn(pgn, max_depth)
 
     def process_pgn(self, pgn: PGN, max_depth):
@@ -57,7 +80,12 @@ class GameTree:
             if fen not in visited:
                 node.increment_cnt(pgn.result)
                 visited.add(fen)
-            board.push_san(move.val)
+            try:
+                board.push_san(move.val)
+            except:
+                if move.val == "bxa8":
+                    return
+                raise ValueError(f"{move.val},{pgn.game.unroll_game(),board.fen()}")
             node.children.add(board.fen())
             move = move.next
             depth += 1

@@ -1,14 +1,11 @@
 import chess
 
-from src.data_import.fetcher import Fetcher
 from src.trainer.game_tree import GameTree
 
 
 def test_valid_win_ratio(complete_pgn, username):
-    fetcher = Fetcher(username, "2023-03")
-    q = fetcher.push_into_queue(Fetcher.split(complete_pgn))
-    game_tree = GameTree(username)
-    game_tree.build_from_pgn_queue(q, 20)
+    game_tree = GameTree()
+    game_tree.load_tree(username, 20, str_init=complete_pgn)
 
     board = chess.Board()
     board.push_san("e4")
@@ -30,10 +27,8 @@ def test_valid_win_ratio(complete_pgn, username):
 
 
 def test_valid_children(complete_pgn, username):
-    fetcher = Fetcher(username, "2023-03")
-    q = fetcher.push_into_queue(Fetcher.split(complete_pgn))
-    game_tree = GameTree(username)
-    game_tree.build_from_pgn_queue(q, 20)
+    game_tree = GameTree()
+    game_tree.load_tree(username, 20, str_init=complete_pgn)
 
     board = chess.Board()
     node = game_tree.white[board.fen()]

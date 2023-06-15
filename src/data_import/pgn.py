@@ -24,32 +24,27 @@ class PGN:
     def __init__(self, pgn_txt, username, init=True):
         self.pgn_txt = pgn_txt
         self.username = username
-        self.color = None
-        self.result = None
-        self.game = None
-
-        if init:
-            self.parse_info()
-
-    def parse_info(self):
         self.color = self.parse_color()
         self.result = self.parse_result()
-        self.game = self.parse_game()
+        try:
+            self.game = self.parse_game()
+        except:
+            raise ValueError("failed extraction")
 
     def parse_game(self):
         game_re = rf"(?<=\n)1\..*"
         try:
             game = re.findall(game_re, self.pgn_txt)[0]
-            cleaning_re = r"[A-Za-z][0-9][A-Za-z][0-9]|[A-Za-z]+[0-9]|O-O-O|O-O"
-            clean_game = re.findall(cleaning_re, game)
-            move = Move(clean_game[0])
-            game = Game(move)
-            for i in range(1, len(clean_game)):
-                move.next = Move(clean_game[i])
-                move = move.next
-            return game
         except:
-            raise ValueError("Pattern did not permit to find game")
+            raise ValueError("No game")
+        cleaning_re = r"[A-Za-z][0-9][A-Za-z][0-9]|[A-Za-z]+[0-9]|O-O-O|O-O"
+        clean_game = re.findall(cleaning_re, game)
+        move = Move(clean_game[0])
+        game = Game(move)
+        for i in range(1, len(clean_game)):
+            move.next = Move(clean_game[i])
+            move = move.next
+        return game
 
     def parse_color(self):
         color_re = rf'\[(.*?)\s"{self.username}"'
@@ -75,3 +70,9 @@ class PGN:
                 return "lose"
         except:
             raise ValueError("Pattern did not permit to find result")
+
+    @staticmethod
+    def split(multi_pgn_txt):
+        regex = r'(?<=\[Event "Live Chess"\])[\s\S]*?(?=\[Event "Live Chess"\]|$)'
+        matches = re.findall(regex, multi_pgn_txt, re.DOTALL)
+        return matches
