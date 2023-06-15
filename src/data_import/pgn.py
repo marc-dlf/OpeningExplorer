@@ -20,10 +20,14 @@ class Game:
         return out_str.strip()
 
 
-class PGNParser:
-    def __init__(self, raw_txt, username, init=True):
-        self.raw_txt = raw_txt
+class PGN:
+    def __init__(self, pgn_txt, username, init=True):
+        self.pgn_txt = pgn_txt
         self.username = username
+        self.color = None
+        self.result = None
+        self.game = None
+
         if init:
             self.parse_info()
 
@@ -35,7 +39,7 @@ class PGNParser:
     def parse_game(self):
         game_re = rf"(?<=\n)1\..*"
         try:
-            game = re.findall(game_re, self.raw_txt)[0]
+            game = re.findall(game_re, self.pgn_txt)[0]
             cleaning_re = r"[A-Za-z][0-9][A-Za-z][0-9]|[A-Za-z]+[0-9]|O-O-O|O-O"
             clean_game = re.findall(cleaning_re, game)
             move = Move(clean_game[0])
@@ -50,7 +54,7 @@ class PGNParser:
     def parse_color(self):
         color_re = rf'\[(.*?)\s"{self.username}"'
         try:
-            return re.findall(color_re, self.raw_txt)[0]
+            return re.findall(color_re, self.pgn_txt)[0].lower()
         except:
             raise ValueError("Pattern did not permit to find player color")
 
@@ -60,14 +64,14 @@ class PGNParser:
             color = self.parse_color()
         result_re = rf'\[Result\s"(.*?)"\]'
         try:
-            result = re.findall(result_re, self.raw_txt)[0]
+            result = re.findall(result_re, self.pgn_txt)[0]
             if result == "1/2-1/2":
-                return "Draw"
-            elif (result == "1-0" and color == "White") or (
-                result == "0-1" and color == "Black"
+                return "draw"
+            elif (result == "1-0" and color == "white") or (
+                result == "0-1" and color == "black"
             ):
-                return "Win"
+                return "win"
             else:
-                return "Lose"
+                return "lose"
         except:
             raise ValueError("Pattern did not permit to find result")

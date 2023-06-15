@@ -1,63 +1,56 @@
 import queue
 import chess
-from src.pgn_parser import PGNParser
+from src.data_import.pgn import PGN
 
 
-class TreeNode:
+class PositionNode:
     def __init__(self, fen, mymove):
         self.id = fen
         self.mymove = mymove
-        self.win_cnt = 0
-        self.lose_cnt = 0
-        self.draw_cnt = 0
+        self.win_count = 0
+        self.lose_count = 0
+        self.draw_count = 0
         self.children = set()
 
     def increment_cnt(self, result):
-        if result == "Win":
-            self.win_cnt += 1
-        elif result == "Lose":
-            self.lose_cnt += 1
-        elif result == "Draw":
-            self.draw_cnt += 1
+        if result == "win":
+            self.win_count += 1
+        elif result == "lose":
+            self.lose_count += 1
+        elif result == "draw":
+            self.draw_count += 1
         else:
             raise ValueError(f'The following result "{result}" is not authorized.')
 
     def win_rate(self):
-        return float(self.win_cnt) / self.n_games()
+        return float(self.win_count) / self.n_games()
 
     def n_games(self):
-        return self.win_cnt + self.lose_cnt + self.draw_cnt
+        return self.win_count + self.lose_count + self.draw_count
 
 
-class ChessTrainer:
+class GameTree:
     def __init__(self, username):
         self.username = username
-        self.game_tree_white = {}
-        self.game_tree_black = {}
+        self.white = {}
+        self.black = {}
 
     def build_from_pgn_queue(self, pgn_queue: queue.Queue, max_depth):
         while not pgn_queue.empty():
-            pgn = PGNParser(pgn_queue.get(), self.username)
-            if pgn.color == "White":
-                curr_tree = self.game_tree_white
-            else:
-                curr_tree = self.game_tree_black
-            self.process_pgn(pgn, max_depth, curr_tree)
+            pgn = PGN(pgn_queue.get(), self.username)
+            self.process_pgn(pgn, max_depth)
 
-    def process_pgn(self, pgn: PGNParser, max_depth, tree):
+    def process_pgn(self, pgn: PGN, max_depth):
         board = chess.Board()
-        game = pgn.game
-
-        move = game.first_move
+        tree = self.white if pgn.color == "white" else self.black
+        move = pgn.game.first_move
         depth = 0
-
-        mymove = not (pgn.color == "White")
+        mymove = not (pgn.color == "white")
         visited = set()
-
         while move is not None and depth <= max_depth:
             fen = board.fen()
             if fen not in tree.keys():
-                node = TreeNode(fen, mymove)
+                node = PositionNode(fen, mymove)
                 tree[fen] = node
             else:
                 node = tree[fen]
@@ -75,9 +68,9 @@ class ChessTrainer:
         pos_q = queue.Queue()
         output_q = queue.PriorityQueue()
         if white:
-            tree = self.game_tree_white
+            tree = self.white
         else:
-            self.game_tree_black
+            self.black
         visited = set()
         pos_q.put(init_board.fen())
         visited.add(init_board.fen())

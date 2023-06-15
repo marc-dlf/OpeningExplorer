@@ -1,11 +1,13 @@
 import requests
 import re
-import queue
 from datetime import datetime
+import os
+from pathlib import Path
 
 import pandas as pd
+import queue
 
-from src.constants import ADDRESS_ROOT
+from src.constants import ADDRESS_ROOT, DATA_FOLDER
 
 
 class Fetcher:
@@ -13,22 +15,22 @@ class Fetcher:
         self.username = username
         self.start_month = start_month
         self.end_month = end_month
-        self.processing_queue = queue.Queue()
 
-    def fetch_all(self):
+    def download_all(self):
+        output_folder = Path(DATA_FOLDER) / self.username
+        os.makedirs(output_folder)
         end_month = self.end_month
         if end_month is None:
             end_month = datetime.strftime(datetime.now(), "%Y-%m")
-
         month_list = (
             pd.date_range(self.start_month, end_month, freq="MS")
             .strftime("%Y-%m")
             .tolist()
         )
-
         for y_m in month_list:
-            pgns = self.fetch_month(y_m)
-            self.push_into_queue(pgns)
+            pgn = self.fetch_month(y_m)
+            with open(output_folder / f"{y_m}.txt", "w") as out_file:
+                out_file.write(pgn)
 
     def fetch_month(self, year_month: str):
         year_str, month_str = year_month.split("-")
@@ -45,9 +47,12 @@ class Fetcher:
             return Fetcher.split(pgn)
 
     def push_into_queue(self, pgns_list):
+        q = queue.Queue()
         if pgns_list:
             for pgn in pgns_list:
-                self.processing_queue.put(pgn)
+                q.put(pgn)
+
+        return q
 
     @staticmethod
     def split(raw_pgn):

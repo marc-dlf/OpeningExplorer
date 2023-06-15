@@ -1,4 +1,4 @@
-from src.fetcher import Fetcher
+from src.data_import.fetcher import Fetcher
 
 
 def test_split_good_number_of_games(dummy_pgn):
@@ -16,10 +16,3 @@ def test_fetch_month_good_number_of_games(username):
     start_month = "2020-01"
     fetcher = Fetcher(username, start_month)
     assert len(fetcher.fetch_month("2023-04")) == 8
-
-
-def test_fetcher_fetch_all_good_number_of_games(username):
-    start_month = "2023-03"
-    fetcher = Fetcher(username, start_month)
-    fetcher.fetch_all()
-    assert fetcher.processing_queue.qsize() == 15
