@@ -17,7 +17,7 @@ class PositionNode:
         self.children = set()
         self.links = []
 
-    def increment_cnt(self, result):
+    def increment_count(self, result):
         if result == "win":
             self.win_count += 1
         elif result == "lose":
@@ -79,7 +79,7 @@ class GameTree:
             else:
                 node = tree[fen]
             if fen not in visited:
-                node.increment_cnt(pgn.result)
+                node.increment_count(pgn.result)
                 node.links.append(pgn.link)
                 visited.add(fen)
             try:
