@@ -26,6 +26,7 @@ class PGN:
         self.username = username
         self.color = self.parse_color()
         self.result = self.parse_result()
+        self.link = self.parse_link()
         try:
             self.game = self.parse_game()
         except:
@@ -37,7 +38,7 @@ class PGN:
             game = re.findall(game_re, self.pgn_txt)[0]
         except:
             raise ValueError("No game")
-        cleaning_re = r"[A-Za-z][0-9][A-Za-z][0-9]|[A-Za-z]+[0-9]|O-O-O|O-O"
+        cleaning_re = r"[A-Za-z]+[0-9]?[x]?[A-Za-z]?[0-9]=?[A-Za-z]?\+?|O-O(?:-O)?"
         clean_game = re.findall(cleaning_re, game)
         move = Move(clean_game[0])
         game = Game(move)
@@ -70,6 +71,13 @@ class PGN:
                 return "lose"
         except:
             raise ValueError("Pattern did not permit to find result")
+
+    def parse_link(self):
+        link_re = rf'\[Link\s"(.*?)"\]'
+        try:
+            return re.findall(link_re, self.pgn_txt)[0].lower()
+        except:
+            raise ValueError("Pattern did not permit to find player link")
 
     @staticmethod
     def split(multi_pgn_txt):

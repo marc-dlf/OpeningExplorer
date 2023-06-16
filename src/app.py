@@ -2,22 +2,26 @@
 # visit http://127.0.0.1:8050/ in your web browser.
 
 from dash import Dash, html, dcc
-import plotly.express as px
-import pandas as pd
 import chess
 import chess.svg
 from cairosvg import svg2png
 import pybase64
 
+from src.trainer.game_tree import GameTree
+
 app = Dash(__name__)
 
-board = chess.Board()
+gt = GameTree()
+gt.load_tree("marcov24", 10)
+q = gt.extract_most_interesting_positions(True, 5)
+
+board = chess.Board(q.get()[1])
 svg = chess.svg.board(board, size=400)
 img = pybase64.b64encode(svg2png(bytestring=svg)).decode()
 
 app.layout = html.Div(
     children=[
-        html.H1(children="Hello Dash"),
+        html.H1(children="Opening Trainer"),
         html.Div(
             children="""
         Dash: A web application framework for your data.

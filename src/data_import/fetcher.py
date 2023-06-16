@@ -25,9 +25,7 @@ class Fetcher:
         for y_m in month_list:
             pgn = self.fetch_month(y_m)
             if pgn is not None:
-                print(output_folder / f"{y_m}.txt")
                 with open(output_folder / f"{y_m}.txt", "w") as out_file:
-                    print()
                     out_file.write(pgn)
 
     def fetch_month(self, year_month: str):
@@ -49,5 +47,4 @@ class Fetcher:
         if pgns_list:
             for pgn in pgns_list:
                 q.put(pgn)
-
         return q

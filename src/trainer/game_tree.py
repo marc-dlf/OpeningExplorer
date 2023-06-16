@@ -15,6 +15,7 @@ class PositionNode:
         self.lose_count = 0
         self.draw_count = 0
         self.children = set()
+        self.links = []
 
     def increment_cnt(self, result):
         if result == "win":
@@ -79,13 +80,14 @@ class GameTree:
                 node = tree[fen]
             if fen not in visited:
                 node.increment_cnt(pgn.result)
+                node.links.append(pgn.link)
                 visited.add(fen)
             try:
                 board.push_san(move.val)
             except:
-                if move.val == "bxa8":
-                    return
-                raise ValueError(f"{move.val},{pgn.game.unroll_game(),board.fen()}")
+                raise ValueError(
+                    f"{move.val},{pgn.game.unroll_game(),board.fen(),pgn.link}"
+                )
             node.children.add(board.fen())
             move = move.next
             depth += 1
@@ -95,21 +97,19 @@ class GameTree:
         init_board = chess.Board()
         pos_q = queue.Queue()
         output_q = queue.PriorityQueue()
-        if white:
-            tree = self.white
-        else:
-            self.black
+        tree = self.white if white else self.black
         visited = set()
         pos_q.put(init_board.fen())
         visited.add(init_board.fen())
+
         while not pos_q.empty():
-            curr_pos = pos_q.get()
-            for child_id in tree[curr_pos].children:
+            pos_node = tree[pos_q.get()]
+            if (not pos_node.mymove) and (pos_node.id not in visited):
+                output_q.put((pos_node.win_rate(), pos_node.id))
+            for child_id in pos_node.children:
                 if child_id in tree.keys():
                     child = tree[child_id]
-                    if child_id not in visited:
+                    if child_id not in visited and child.n_games() >= thresh:
                         pos_q.put(child.id)
-                        if not child.mymove and child.n_games() >= thresh:
-                            output_q.put((child.win_rate(), child.id))
-            visited.add(curr_pos)
+            visited.add(pos_node.id)
         return output_q
