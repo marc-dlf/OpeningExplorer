@@ -61,12 +61,9 @@ def on_click(n_clicks, value):
     if value is None:
         return None
     gt = GameTree()
-    gt.load_tree(value, 10, start_month=START_MONTH, end_month=END_MONTH)
+    gt.load_tree(value, 14, start_month=START_MONTH, end_month=END_MONTH)
     q = gt.extract_most_interesting_positions(True, 5)
-    q.get()
-    q.get()
-    q.get()
-    elts = [gt.white[q.get()[1]], gt.white[q.get()[1]]]
+    elts = [gt.white[q.get()[1]], gt.white[q.get()[1]], gt.white[q.get()[1]]]
     elts = [(elt.id, elt.win_count, elt.lose_count, elt.draw_count) for elt in elts]
     return elts
 

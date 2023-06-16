@@ -1,9 +1,9 @@
 import queue
 import chess
 from pathlib import Path
-from src.data_import.pgn import PGN
-from src.data_import.fetcher import Fetcher
-from src.constants import DATA_FOLDER
+from src.trainer.pgn import PGN
+from src.trainer.player import Player
+from src.constants import DATA_FOLDER, START_MONTH, END_MONTH
 import os
 
 
@@ -40,38 +40,22 @@ class GameTree:
         self.black = {}
 
     def load_tree(
-        self, username, max_depth, start_month=None, end_month=None, str_init=None
+        self, username, max_depth, start_month=START_MONTH, end_month=END_MONTH
     ):
-        if str_init is not None:
-            self.process_multi_pgn(str_init, max_depth, username)
-        else:
-            if username not in os.listdir(DATA_FOLDER):
-                f = Fetcher(username)
-                f.download_all(start_month, end_month)
-
-            path = Path(DATA_FOLDER) / username
-            for pgn_month in os.listdir(path):
-                with open(path / f"{pgn_month}", "r") as f:
-                    multi_pgn = f.read()
-                self.process_multi_pgn(multi_pgn, max_depth, username)
-
-    def process_multi_pgn(self, multi_pgn, max_depth, username):
-        for pgn_txt in PGN.split(multi_pgn):
-            try:
-                pgn = PGN(pgn_txt, username, True)
-            except:
-                print(f"Failed extraction for : {pgn_txt}")
-                continue
+        player = Player(username)
+        player.load_player_history(start_month, end_month)
+        for pgn in player.pgn_list:
             self.process_pgn(pgn, max_depth)
 
     def process_pgn(self, pgn: PGN, max_depth):
         board = chess.Board()
         tree = self.white if pgn.color == "white" else self.black
-        move = pgn.game.first_move
+        game = pgn.game.split(" ")
         depth = 0
         mymove = not (pgn.color == "white")
         visited = set()
-        while move is not None and depth <= max_depth:
+        while depth <= max_depth and depth < len(game):
+            move = game[depth]
             fen = board.fen()
             if fen not in tree.keys():
                 node = PositionNode(fen, mymove)
@@ -83,17 +67,14 @@ class GameTree:
                 node.links.append(pgn.link)
                 visited.add(fen)
             try:
-                board.push_san(move.val)
+                board.push_san(move)
             except:
-                raise ValueError(
-                    f"{move.val},{pgn.game.unroll_game(),board.fen(),pgn.link}"
-                )
+                raise ValueError(f"{depth},{move},{pgn.game,board.fen(),pgn.link}")
             node.children.add(board.fen())
-            move = move.next
             depth += 1
             mymove = not mymove
 
-    def extract_most_interesting_positions(self, white: bool, thresh=3):
+    def extract_most_interesting_positions(self, white: bool, thresh):
         init_board = chess.Board()
         pos_q = queue.Queue()
         output_q = queue.PriorityQueue()

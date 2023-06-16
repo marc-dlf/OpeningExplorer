@@ -3,9 +3,9 @@ import chess
 from src.trainer.game_tree import GameTree
 
 
-def test_valid_win_ratio(complete_pgn, username):
+def test_valid_win_ratio(username):
     game_tree = GameTree()
-    game_tree.load_tree(username, 20, str_init=complete_pgn)
+    game_tree.load_tree(username, 20, start_month="2023-03", end_month="2023-04")
 
     board = chess.Board()
     board.push_san("e4")
@@ -26,9 +26,9 @@ def test_valid_win_ratio(complete_pgn, username):
     assert node.mymove == False
 
 
-def test_valid_children(complete_pgn, username):
+def test_valid_children(username):
     game_tree = GameTree()
-    game_tree.load_tree(username, 20, str_init=complete_pgn)
+    game_tree.load_tree(username, 20, start_month="2023-03", end_month="2023-04")
 
     board = chess.Board()
     node = game_tree.white[board.fen()]
