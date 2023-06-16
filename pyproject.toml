@@ -19,6 +19,7 @@ dash = "2.10.2"
 chess = "1.9.4"
 pybase64 = "1.2.3" 
 CairoSVG = "2.7.0"
+dash-bootstrap-components = "1.4.1"
 
 [tool.pytest.ini_options]
 pythonpath = [
