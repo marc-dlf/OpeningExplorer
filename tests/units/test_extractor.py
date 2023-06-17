@@ -6,7 +6,7 @@ def test_split_good_number_of_games(dummy_pgn):
     assert len(pgns) == 3
 
 
-def test_parse_color(dummy_pgn, username):
+def test_extract_color(dummy_pgn, username):
     pgns = Extractor.split(dummy_pgn)
 
     e = Extractor(username)
@@ -14,7 +14,7 @@ def test_parse_color(dummy_pgn, username):
     assert e.extract_color(pgns[1]) == "black"
 
 
-def test_parse_result(dummy_pgn, username):
+def test_extract_result(dummy_pgn, username):
     pgns = Extractor.split(dummy_pgn)
 
     e = Extractor(username)
@@ -23,7 +23,7 @@ def test_parse_result(dummy_pgn, username):
     assert e.extract_result(pgns[2]) == "lose"
 
 
-def test_parse_result(dummy_pgn, username):
+def test_extract_result(dummy_pgn, username):
     pgns = Extractor.split(dummy_pgn)
 
     e = Extractor(username)
@@ -36,9 +36,17 @@ def test_parse_result(dummy_pgn, username):
     assert e.extract_game(pgns[2]) == expected_game_2
 
 
-def test_parse_link(dummy_pgn, username):
+def test_extract_link(dummy_pgn, username):
     pgns = Extractor.split(dummy_pgn)
 
     e = Extractor(username)
     expected_link1 = "https://www.chess.com/game/live/75743501325"
     assert e.extract_link(pgns[0]) == expected_link1
+
+
+def test_extract_link(dummy_pgn, username):
+    pgns = Extractor.split(dummy_pgn)
+
+    e = Extractor(username)
+    expected_month = "2023-04"
+    assert e.extract_month(pgns[0]) == expected_month

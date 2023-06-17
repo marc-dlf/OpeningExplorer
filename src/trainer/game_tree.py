@@ -1,10 +1,7 @@
 import queue
 import chess
-from pathlib import Path
 from src.trainer.pgn import PGN
 from src.trainer.player import Player
-from src.constants import DATA_FOLDER, START_MONTH, END_MONTH
-import os
 
 
 class PositionNode:
@@ -39,15 +36,13 @@ class GameTree:
         self.white = {}
         self.black = {}
 
-    def load_tree(
-        self, username, max_depth, start_month=START_MONTH, end_month=END_MONTH
-    ):
+    def load_tree(self, username, max_depth, start_month, end_month, csv_path=None):
         player = Player(username)
-        player.load_player_history(start_month, end_month)
+        player.load_player_history(start_month, end_month, csv_path)
         for pgn in player.pgn_list:
-            self.process_pgn(pgn, max_depth)
+            self.add_pgn_to_tree(pgn, max_depth)
 
-    def process_pgn(self, pgn: PGN, max_depth):
+    def add_pgn_to_tree(self, pgn: PGN, max_depth):
         board = chess.Board()
         tree = self.white if pgn.color == "white" else self.black
         game = pgn.game.split(" ")
@@ -74,7 +69,7 @@ class GameTree:
             depth += 1
             mymove = not mymove
 
-    def extract_most_interesting_positions(self, white: bool, thresh):
+    def get_worse_k_positions(self, white: bool, thresh, k):
         init_board = chess.Board()
         pos_q = queue.Queue()
         output_q = queue.PriorityQueue()
@@ -93,4 +88,8 @@ class GameTree:
                     if child_id not in visited and child.n_games() >= thresh:
                         pos_q.put(child.id)
             visited.add(pos_node.id)
-        return output_q
+
+        out, i = [], 0
+        while not output_q.empty() and i < k:
+            out.append(tree[output_q.get()[1]])
+        return out

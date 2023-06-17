@@ -6,12 +6,13 @@ import chess
 import chess.svg
 from cairosvg import svg2png
 import pybase64
-from src.constants import START_MONTH, END_MONTH
 import dash_bootstrap_components as dbc
 import plotly.express as px
 import pandas as pd
 
+
 from src.trainer.game_tree import GameTree
+import src.config as config
 
 app = Dash(__name__, external_stylesheets=[dbc.themes.LUX])
 
@@ -28,23 +29,37 @@ app.layout = html.Div(
         html.Div(
             children=[
                 html.Div(
-                    html.Img(
-                        id="board",
-                    ),
+                    children=[
+                        html.Img(
+                            id="board",
+                        ),
+                        html.Div(
+                            children=[
+                                dcc.Input(
+                                    id="playername", type="text", placeholder=""
+                                ),
+                                html.Button("Submit", id="submit-val", n_clicks=0),
+                                dcc.Dropdown(
+                                    [str(i) for i in range(config.N_POSITIONS)],
+                                    "0",
+                                    id="dropdown",
+                                ),
+                            ],
+                            style={"display": "flex", "margin-top": "30px"},
+                        ),
+                    ],
                     style={
                         "width": "50%",
                         "display": "flex",
                         "align-items": "center",
                         "justify-content": "center",
+                        "flex-direction": "column",
                     },
                 ),
                 dcc.Graph(id="graph"),
             ],
             style={"display": "flex", "margin-bottom": "50px", "margin-top": "100px"},
         ),
-        dcc.Input(id="playername", type="text", placeholder=""),
-        html.Button("Submit", id="submit-val", n_clicks=0),
-        dcc.Dropdown(["0", "1", "2"], "0", id="dropdown"),
         # dcc.Store stores the intermediate value
         dcc.Store(id="board-svg"),
         dcc.Store(id="player-examples"),
@@ -61,11 +76,12 @@ def on_click(n_clicks, value):
     if value is None:
         return None
     gt = GameTree()
-    gt.load_tree(value, 14, start_month=START_MONTH, end_month=END_MONTH)
-    q = gt.extract_most_interesting_positions(True, 5)
-    elts = [gt.white[q.get()[1]], gt.white[q.get()[1]], gt.white[q.get()[1]]]
-    elts = [(elt.id, elt.win_count, elt.lose_count, elt.draw_count) for elt in elts]
-    return elts
+    gt.load_tree(value, 14, config.START_MONTH, config.END_MONTH)
+    positions = gt.get_worse_k_positions(True, 3, 10)
+    positions = [
+        (elt.id, elt.win_count, elt.lose_count, elt.draw_count) for elt in positions
+    ]
+    return positions
 
 
 @callback(
@@ -73,7 +89,7 @@ def on_click(n_clicks, value):
     [Input("dropdown", "value"), Input("player-examples", "data")],
 )
 def clean_data(value, examples):
-    if examples is None:
+    if examples is None or value is None:
         return f"data:image/png;base64,{BASE_IMG}"
     else:
         board = chess.Board(examples[int(value)][0])
@@ -93,7 +109,7 @@ def update_img(src_img):
 )
 def update_bar_chart(value, examples):
     win, lose, draw = 0, 0, 0
-    if examples is not None:
+    if examples is not None and value is not None:
         ex = examples[int(value)]
         win, lose, draw = ex[1], ex[2], ex[3]
     df = pd.DataFrame(

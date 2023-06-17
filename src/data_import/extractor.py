@@ -43,6 +43,15 @@ class Extractor:
         except:
             raise ValueError("Pattern did not permit to find player link")
 
+    def extract_month(self, pgn_txt):
+        month_re = rf'\[UTCDate\s"(.*?)"\]'
+        try:
+            date_str = re.findall(month_re, pgn_txt)[0].lower()
+        except:
+            raise ValueError("Pattern did not permit to find player link")
+        date_str = date_str.replace(".", "-")[:-3]
+        return date_str
+
     @staticmethod
     def split(multi_pgn_txt):
         regex = r'(?<=\[Event "Live Chess"\])[\s\S]*?(?=\[Event "Live Chess"\]|$)'

@@ -1,10 +1,11 @@
 import os
-from src.constants import DATA_FOLDER
+from src.config import DATA_FOLDER
+from datetime import datetime
 import pandas as pd
 from pathlib import Path
 from src.trainer.pgn import PGN
 from src.data_import.fetcher import Fetcher
-from src.data_import.extractor import Extractor
+from src.config import MINIMAL_MONTH
 
 
 class Player:
@@ -12,35 +13,31 @@ class Player:
         self.username = username
         self.pgn_list = []
 
-    def load_player_history(self, start_month=None, end_month=None):
-        if f"{self.username}.csv" in os.listdir(DATA_FOLDER):
-            pgn_df = pd.read_csv(
-                Path(DATA_FOLDER) / f"{self.username}.csv", index_col=None
-            )
-            for i in range(len(pgn_df)):
-                pgn = PGN(*pgn_df.iloc[i].values)
-                self.pgn_list.append(pgn)
+    def load_player_history(self, start_month, end_month, csv_path=None):
+        if csv_path is not None:
+            self.pgn_list = self.load_from_csv(csv_path, start_month, end_month)
         else:
-            f = Fetcher(self.username)
-            if start_month is None or end_month is None:
-                raise ValueError(
-                    "Both start month and end month should be specified to fetch data"
+            username_path = self.path()
+            if username_path is not None:
+                self.pgn_list = self.load_from_csv(
+                    username_path, start_month, end_month
                 )
-            month_list = (
-                pd.date_range(start_month, end_month, freq="MS")
-                .strftime("%Y-%m")
-                .tolist()
-            )
-            pgn_df = pd.DataFrame(
-                columns=["username", "color", "result", "link", "game"]
-            )
-            for y_m in month_list:
-                pgns = f.download_month(y_m)
-                if pgns is not None:
-                    for pgn_txt in Extractor.split(pgns):
-                        pgn = PGN.extract_from_txt(self.username, pgn_txt)
-                        pgn_df = pd.concat(
-                            [pgn_df, pd.DataFrame(pgn.__dict__, index=[0])]
-                        )
-                        self.pgn_list.append(pgn)
-            pgn_df.to_csv(Path(DATA_FOLDER) / f"{self.username}.csv", index=False)
+            else:
+                f = Fetcher(self.username)
+                f.download_history(MINIMAL_MONTH, datetime.now().strftime("%Y-%m"))
+                self.pgn_list = self.load_from_csv(self.path(), start_month, end_month)
+
+    def path(self):
+        if f"{self.username}.csv" in os.listdir(DATA_FOLDER):
+            return Path(DATA_FOLDER) / f"{self.username}.csv"
+
+    def load_from_csv(self, path, start_month, end_month):
+        pgn_df = pd.read_csv(path)
+        pgn_df = pgn_df[
+            (pgn_df["month"] >= start_month) & (pgn_df["month"] <= end_month)
+        ]
+        pgn_list = []
+        for i in range(len(pgn_df)):
+            pgn = PGN(*pgn_df.iloc[i].values)
+            pgn_list.append(pgn)
+        return pgn_list

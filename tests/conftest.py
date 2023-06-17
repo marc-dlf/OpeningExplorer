@@ -19,3 +19,8 @@ def complete_pgn():  # pragma: no cover
 @pytest.fixture
 def username():  # pragma: no cover
     return "marcov24"
+
+
+@pytest.fixture
+def csv_path():  # pragma: no cover
+    return "tests/units/data_examples/example.csv"
