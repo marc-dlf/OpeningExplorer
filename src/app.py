@@ -60,6 +60,7 @@ app.layout = html.Div(
             ],
             style={"display": "flex", "margin-bottom": "50px", "margin-top": "100px"},
         ),
+        dcc.Loading(id="loading01", children=html.Div(id="loading-output1")),
         # dcc.Store stores the intermediate value
         dcc.Store(id="board-svg"),
         dcc.Store(id="player-examples"),
@@ -69,19 +70,20 @@ app.layout = html.Div(
 
 @callback(
     Output("player-examples", "data"),
+    Output("loading-output1", "children"),
     Input("submit-val", "n_clicks"),
     State("playername", "value"),
 )
 def on_click(n_clicks, value):
     if value is None:
-        return None
+        return None, ""
     gt = GameTree()
     gt.load_tree(value, 14, config.START_MONTH, config.END_MONTH)
     positions = gt.get_worse_k_positions(True, 3, 10)
     positions = [
         (elt.id, elt.win_count, elt.lose_count, elt.draw_count) for elt in positions
     ]
-    return positions
+    return positions, ""
 
 
 @callback(
