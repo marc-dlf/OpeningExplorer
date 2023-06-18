@@ -50,3 +50,14 @@ def test_extract_link(dummy_pgn, username):
     e = Extractor(username)
     expected_month = "2023-04"
     assert e.extract_month(pgns[0]) == expected_month
+
+
+def test_extract_opening(dummy_pgn, username):
+    pgns = Extractor.split(dummy_pgn)
+
+    e = Extractor(username)
+    expected_opening1 = "Philidor Defense Exchange Variation"
+    assert e.extract_opening(pgns[0]) == expected_opening1
+
+    expected_opening2 = "Caro Kann Defense Advance Variation"
+    assert e.extract_opening(pgns[1]) == expected_opening2

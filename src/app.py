@@ -30,6 +30,11 @@ app.layout = html.Div(
             children=[
                 html.Div(
                     children=[
+                        html.H3(
+                            id="opening",
+                            children="Opening name",
+                            style={"textAlign": "center"},
+                        ),
                         html.Img(
                             id="board",
                         ),
@@ -43,6 +48,9 @@ app.layout = html.Div(
                                     [str(i) for i in range(config.N_POSITIONS)],
                                     "0",
                                     id="dropdown",
+                                ),
+                                dcc.RadioItems(
+                                    ["White", "Black"], "White", id="color"
                                 ),
                             ],
                             style={"display": "flex", "margin-top": "30px"},
@@ -79,25 +87,41 @@ def on_click(n_clicks, value):
         return None, ""
     gt = GameTree()
     gt.load_tree(value, 14, config.START_MONTH, config.END_MONTH)
-    positions = gt.get_worse_k_positions(True, 3, 10)
-    positions = [
-        (elt.id, elt.win_count, elt.lose_count, elt.draw_count) for elt in positions
+    positions = gt.get_worse_k_positions(3, 10)
+    positions_white = [
+        (elt.id, elt.win_count, elt.lose_count, elt.draw_count, elt.opening)
+        for elt in positions["white"]
     ]
-    return positions, ""
+    positions_black = [
+        (elt.id, elt.win_count, elt.lose_count, elt.draw_count, elt.opening)
+        for elt in positions["black"]
+    ]
+    return {"w": positions_white, "b": positions_black}, ""
 
 
 @callback(
     Output("board-svg", "data"),
-    [Input("dropdown", "value"), Input("player-examples", "data")],
+    Output("opening", "children"),
+    [
+        Input("dropdown", "value"),
+        Input("player-examples", "data"),
+        Input("color", "value"),
+    ],
 )
-def clean_data(value, examples):
+def load_board(value, examples, color):
     if examples is None or value is None:
-        return f"data:image/png;base64,{BASE_IMG}"
+        return f"data:image/png;base64,{BASE_IMG}", "Opening Name"
     else:
-        board = chess.Board(examples[int(value)][0])
+        e = examples["w"] if color == "White" else examples["b"]
+        fen, _, _, _, opening = e[int(value)]
+        board = chess.Board(fen)
+        if color == "Black":
+            board = board.transform(chess.flip_vertical).transform(
+                chess.flip_horizontal
+            )
         svg = chess.svg.board(board, size=500)
         img = pybase64.b64encode(svg2png(bytestring=svg)).decode()
-        return f"data:image/png;base64,{img}"
+        return f"data:image/png;base64,{img}", opening
 
 
 @callback(Output("board", "src"), Input("board-svg", "data"))
@@ -107,12 +131,17 @@ def update_img(src_img):
 
 @callback(
     Output("graph", "figure"),
-    [Input("dropdown", "value"), Input("player-examples", "data")],
+    [
+        Input("dropdown", "value"),
+        Input("player-examples", "data"),
+        Input("color", "value"),
+    ],
 )
-def update_bar_chart(value, examples):
+def update_bar_chart(value, examples, color):
     win, lose, draw = 0, 0, 0
     if examples is not None and value is not None:
-        ex = examples[int(value)]
+        e = examples["w"] if color == "White" else examples["b"]
+        ex = e[int(value)]
         win, lose, draw = ex[1], ex[2], ex[3]
     df = pd.DataFrame(
         {

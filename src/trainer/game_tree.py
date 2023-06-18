@@ -5,7 +5,7 @@ from src.trainer.player import Player
 
 
 class PositionNode:
-    def __init__(self, fen, mymove):
+    def __init__(self, fen, mymove, opening):
         self.id = fen
         self.mymove = mymove
         self.win_count = 0
@@ -13,6 +13,7 @@ class PositionNode:
         self.draw_count = 0
         self.children = set()
         self.links = []
+        self.opening = opening
 
     def increment_count(self, result):
         if result == "win":
@@ -53,7 +54,7 @@ class GameTree:
             move = game[depth]
             fen = board.fen()
             if fen not in tree.keys():
-                node = PositionNode(fen, mymove)
+                node = PositionNode(fen, mymove, pgn.opening)
                 tree[fen] = node
             else:
                 node = tree[fen]
@@ -69,11 +70,10 @@ class GameTree:
             depth += 1
             mymove = not mymove
 
-    def get_worse_k_positions(self, white: bool, thresh, k):
+    def get_worse_k_positions_from_tree(self, tree, thresh, k):
         init_board = chess.Board()
         pos_q = queue.Queue()
         output_q = queue.PriorityQueue()
-        tree = self.white if white else self.black
         visited = set()
         pos_q.put(init_board.fen())
         visited.add(init_board.fen())
@@ -93,3 +93,9 @@ class GameTree:
         while not output_q.empty() and i < k:
             out.append(tree[output_q.get()[1]])
         return out
+
+    def get_worse_k_positions(self, thresh, k):
+        return {
+            "white": self.get_worse_k_positions_from_tree(self.white, thresh, k),
+            "black": self.get_worse_k_positions_from_tree(self.black, thresh, k),
+        }

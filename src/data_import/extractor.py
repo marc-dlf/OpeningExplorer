@@ -52,6 +52,13 @@ class Extractor:
         date_str = date_str.replace(".", "-")[:-3]
         return date_str
 
+    def extract_opening(self, pgn_txt):
+        opening_re = rf'openings\/"?(.*?)(?:\.|\-[0-9]|\n|")'
+        try:
+            return re.findall(opening_re, pgn_txt)[0].replace("-", " ")
+        except:
+            raise ValueError(f"Pattern did not permit to find player opening{pgn_txt}")
+
     @staticmethod
     def split(multi_pgn_txt):
         regex = r'(?<=\[Event "Live Chess"\])[\s\S]*?(?=\[Event "Live Chess"\]|$)'
