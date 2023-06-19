@@ -1,11 +1,12 @@
 import os
-from src.config import DATA_FOLDER
 from datetime import datetime
-import pandas as pd
 from pathlib import Path
-from src.trainer.pgn import PGN
-from src.data_import.fetcher import Fetcher
-from src.config import MINIMAL_MONTH
+
+import pandas as pd
+
+from src.config import DATA_FOLDER, MINIMAL_MONTH
+from src.explorer.pgn import PGN
+from src.preprocess.fetcher import Fetcher
 
 
 class Player:

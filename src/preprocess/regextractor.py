@@ -1,22 +1,26 @@
 import re
 
 
-class Extractor:
-    def __init__(self, username):
-        self.username = username
+class RegExtractor:
+    GAME_RE = r"(?<=\n)1\..*"
+    RESULT_RE = r'\[Result\s"(.*?)"\]'
+    LINK_RE = r'\[Link\s"(.*?)"\]'
+    MONTH_RE = r'\[UTCDate\s"(.*?)"\]'
+    OPENING_RE = r'openings\/"?(.*?)(?:\.|\-[0-9]|\n|")'
+    COLOR_RE = r'\[(.*?)\s"PLACEHOLDER"'
 
-    def extract_color(self, pgn_txt):
-        color_re = rf'\[(.*?)\s"{self.username}"'
+    @classmethod
+    def get_color(cls, pgn_txt, username):
         try:
-            return re.findall(color_re, pgn_txt)[0].lower()
+            return re.findall(cls.COLOR_RE.replace("PLACEHOLDER", username), pgn_txt)[
+                0
+            ].lower()
         except:
             raise ValueError("Pattern did not permit to find player color")
 
-    def extract_result(self, pgn_txt, color=None):
-        if color is None:
-            color = self.extract_color(pgn_txt)
-        result_re = rf'\[Result\s"(.*?)"\]'
-        result = re.findall(result_re, pgn_txt)[0]
+    @classmethod
+    def get_result(cls, pgn_txt, color):
+        result = re.findall(cls.RESULT_RE, pgn_txt)[0]
         if result == "1/2-1/2":
             return "draw"
         elif (result == "1-0" and color == "white") or (
@@ -26,36 +30,33 @@ class Extractor:
         else:
             return "lose"
 
-    def extract_game(self, pgn_txt):
-        game_re = rf"(?<=\n)1\..*"
-        try:
-            game = re.findall(game_re, pgn_txt)[0]
-        except:
-            raise ValueError("No game")
+    @classmethod
+    def get_game(cls, pgn_txt):
+        game = re.findall(cls.GAME_RE, pgn_txt)[0]
         cleaning_re = r"[A-Za-z]+[0-9]?[x]?[A-Za-z]?[0-9]=?[A-Za-z]?\+?|O-O(?:-O)?"
         clean_game = re.findall(cleaning_re, game)
         return " ".join(clean_game)
 
-    def extract_link(self, pgn_txt):
-        link_re = rf'\[Link\s"(.*?)"\]'
+    @classmethod
+    def get_link(cls, pgn_txt):
         try:
-            return re.findall(link_re, pgn_txt)[0].lower()
+            return re.findall(cls.LINK_RE, pgn_txt)[0].lower()
         except:
             raise ValueError("Pattern did not permit to find player link")
 
-    def extract_month(self, pgn_txt):
-        month_re = rf'\[UTCDate\s"(.*?)"\]'
+    @classmethod
+    def get_month(cls, pgn_txt):
         try:
-            date_str = re.findall(month_re, pgn_txt)[0].lower()
+            date_str = re.findall(cls.MONTH_RE, pgn_txt)[0].lower()
         except:
             raise ValueError("Pattern did not permit to find player link")
         date_str = date_str.replace(".", "-")[:-3]
         return date_str
 
-    def extract_opening(self, pgn_txt):
-        opening_re = rf'openings\/"?(.*?)(?:\.|\-[0-9]|\n|")'
+    @classmethod
+    def get_opening(cls, pgn_txt):
         try:
-            return re.findall(opening_re, pgn_txt)[0].replace("-", " ")
+            return re.findall(cls.OPENING_RE, pgn_txt)[0].replace("-", " ")
         except:
             raise ValueError(f"Pattern did not permit to find player opening{pgn_txt}")
 

@@ -1,10 +1,11 @@
+from pathlib import Path
+
+import pandas as pd
 import requests
 
-from pathlib import Path
 from src.config import ADDRESS_ROOT, DATA_FOLDER
-from src.data_import.extractor import Extractor
-from src.trainer.pgn import PGN
-import pandas as pd
+from src.explorer.pgn import PGN
+from src.preprocess.regextractor import RegExtractor
 
 
 class Fetcher:
@@ -26,17 +27,16 @@ class Fetcher:
             return pgn
 
     def download_history(self, start, end):
-        print(start, end)
         month_list = pd.date_range(start, end, freq="MS").strftime("%Y-%m").tolist()
         pgn_df = pd.DataFrame(
-            columns=["username", "color", "result", "link", "game", "month"]
+            columns=["color", "result", "link", "game", "month", "opening"]
         )
         for y_m in month_list:
             pgns = self.download_month(y_m)
             if pgns is not None:
-                for pgn_txt in Extractor.split(pgns):
+                for pgn_txt in RegExtractor.split(pgns):
                     try:
-                        pgn = PGN.extract_from_txt(self.username, pgn_txt)
+                        pgn = PGN.extract_from_txt(pgn_txt, self.username)
                         pgn_df = pd.concat(
                             [pgn_df, pd.DataFrame(pgn.__dict__, index=[0])]
                         )

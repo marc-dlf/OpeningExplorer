@@ -23,4 +23,4 @@ def username():  # pragma: no cover
 
 @pytest.fixture
 def csv_path():  # pragma: no cover
-    return "tests/units/data_examples/example.csv"
+    return "tests/units/data_examples/example_player.csv"

@@ -1,6 +1,6 @@
 import chess
 
-from src.trainer.game_tree import GameTree
+from src.explorer.game_tree import GameTree
 
 
 def test_valid_win_ratio(username, csv_path):
@@ -16,7 +16,7 @@ def test_valid_win_ratio(username, csv_path):
 
     assert node.win_count == 37
     assert node.lose_count == 32
-    assert node.mymove == True
+    assert node.player_to_move == True
 
     # Validate results as black
     node = game_tree.black[board.fen()]
@@ -24,7 +24,7 @@ def test_valid_win_ratio(username, csv_path):
     assert node.win_count == 20
     assert node.lose_count == 17
     assert node.draw_count == 3
-    assert node.mymove == False
+    assert node.player_to_move == False
 
 
 def test_valid_children(username, csv_path):

@@ -1,19 +1,21 @@
 import queue
+
 import chess
-from src.trainer.pgn import PGN
-from src.trainer.player import Player
+
+from src.explorer.pgn import PGN
+from src.explorer.player import Player
 
 
 class PositionNode:
-    def __init__(self, fen, mymove, opening):
-        self.id = fen
-        self.mymove = mymove
+    def __init__(self, fen, player_to_move, opening):
+        self.fen = fen
+        self.player_to_move = player_to_move
+        self.opening = opening
         self.win_count = 0
         self.lose_count = 0
         self.draw_count = 0
         self.children = set()
         self.links = []
-        self.opening = opening
 
     def increment_count(self, result):
         if result == "win":
@@ -48,13 +50,13 @@ class GameTree:
         tree = self.white if pgn.color == "white" else self.black
         game = pgn.game.split(" ")
         depth = 0
-        mymove = not (pgn.color == "white")
+        hero_move = not (pgn.color == "white")
         visited = set()
         while depth <= max_depth and depth < len(game):
             move = game[depth]
             fen = board.fen()
             if fen not in tree.keys():
-                node = PositionNode(fen, mymove, pgn.opening)
+                node = PositionNode(fen, hero_move, pgn.opening)
                 tree[fen] = node
             else:
                 node = tree[fen]
@@ -68,7 +70,7 @@ class GameTree:
                 raise ValueError(f"{depth},{move},{pgn.game,board.fen(),pgn.link}")
             node.children.add(board.fen())
             depth += 1
-            mymove = not mymove
+            hero_move = not hero_move
 
     def get_worse_k_positions_from_tree(self, tree, thresh, k):
         init_board = chess.Board()
@@ -80,22 +82,33 @@ class GameTree:
 
         while not pos_q.empty():
             pos_node = tree[pos_q.get()]
-            if (not pos_node.mymove) and (pos_node.id not in visited):
-                output_q.put((pos_node.win_rate(), pos_node.id))
+            if (not pos_node.player_to_move) and (pos_node.fen not in visited):
+                output_q.put((pos_node.win_rate(), pos_node.fen))
             for child_id in pos_node.children:
                 if child_id in tree.keys():
                     child = tree[child_id]
                     if child_id not in visited and child.n_games() >= thresh:
-                        pos_q.put(child.id)
-            visited.add(pos_node.id)
+                        pos_q.put(child.fen)
+            visited.add(pos_node.fen)
 
         out, i = [], 0
         while not output_q.empty() and i < k:
             out.append(tree[output_q.get()[1]])
-        return out
+        return Result(out)
 
     def get_worse_k_positions(self, thresh, k):
         return {
-            "white": self.get_worse_k_positions_from_tree(self.white, thresh, k),
-            "black": self.get_worse_k_positions_from_tree(self.black, thresh, k),
+            "w": self.get_worse_k_positions_from_tree(self.white, thresh, k),
+            "b": self.get_worse_k_positions_from_tree(self.black, thresh, k),
         }
+
+
+class Result:
+    def __init__(self, position_node_list):
+        self.positions = position_node_list
+
+    def to_tuples(self):
+        return [
+            (pos.fen, pos.win_count, pos.lose_count, pos.draw_count, pos.opening)
+            for pos in self.positions
+        ]

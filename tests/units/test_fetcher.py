@@ -1,5 +1,5 @@
-from src.data_import.fetcher import Fetcher
-from src.data_import.extractor import Extractor
+from src.preprocess.fetcher import Fetcher
+from src.preprocess.regextractor import RegExtractor
 
 
 def test_fetch_month_no_pgn(username):
@@ -10,4 +10,4 @@ def test_fetch_month_no_pgn(username):
 def test_fetch_month_good_number_of_games(username):
     fetcher = Fetcher(username)
     pgn = fetcher.download_month("2023-04")
-    assert len(Extractor.split(pgn)) == 8
+    assert len(RegExtractor.split(pgn)) == 8

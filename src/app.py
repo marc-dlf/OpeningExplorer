@@ -1,21 +1,21 @@
 # Run this app with `python app.py` and
 # visit http://127.0.0.1:8050/ in your web browser.
 
-from dash import Dash, html, dcc, ctx, callback, Input, Output, State
+from cairosvg import svg2png
 import chess
 import chess.svg
-from cairosvg import svg2png
-import pybase64
+from dash import Dash, Input, Output, State, callback, ctx, dcc, html
 import dash_bootstrap_components as dbc
-import plotly.express as px
 import pandas as pd
+import plotly.express as px
+import pybase64
 
-
-from src.trainer.game_tree import GameTree
 import src.config as config
+from src.explorer.game_tree import GameTree
 
 app = Dash(__name__, external_stylesheets=[dbc.themes.LUX])
 
+# Pre loading base board
 BASE_BOARD = chess.Board()
 BASE_SVG = chess.svg.board(BASE_BOARD, size=500)
 BASE_IMG = pybase64.b64encode(svg2png(bytestring=BASE_SVG)).decode()
@@ -28,6 +28,7 @@ app.layout = html.Div(
         ),
         html.Div(
             children=[
+                # Div with board and selectors
                 html.Div(
                     children=[
                         html.H3(
@@ -40,15 +41,19 @@ app.layout = html.Div(
                         ),
                         html.Div(
                             children=[
+                                # Input player username to search
                                 dcc.Input(
                                     id="playername", type="text", placeholder=""
                                 ),
+                                # Validate search
                                 html.Button("Submit", id="submit-val", n_clicks=0),
+                                # Select position among proposed
                                 dcc.Dropdown(
                                     [str(i) for i in range(config.N_POSITIONS)],
                                     "0",
-                                    id="dropdown",
+                                    id="position-index",
                                 ),
+                                # Select color
                                 dcc.RadioItems(
                                     ["White", "Black"], "White", id="color"
                                 ),
@@ -64,21 +69,22 @@ app.layout = html.Div(
                         "flex-direction": "column",
                     },
                 ),
-                dcc.Graph(id="graph"),
+                # Position stats graph
+                dcc.Graph(id="results-graph"),
             ],
             style={"display": "flex", "margin-bottom": "50px", "margin-top": "100px"},
         ),
-        dcc.Loading(id="loading01", children=html.Div(id="loading-output1")),
+        dcc.Loading(id="loading", children=html.Div(id="loading-output")),
         # dcc.Store stores the intermediate value
         dcc.Store(id="board-svg"),
-        dcc.Store(id="player-examples"),
+        dcc.Store(id="positions"),
     ]
 )
 
 
 @callback(
-    Output("player-examples", "data"),
-    Output("loading-output1", "children"),
+    Output("positions", "data"),
+    Output("loading-output", "children"),
     Input("submit-val", "n_clicks"),
     State("playername", "value"),
 )
@@ -88,32 +94,27 @@ def on_click(n_clicks, value):
     gt = GameTree()
     gt.load_tree(value, 14, config.START_MONTH, config.END_MONTH)
     positions = gt.get_worse_k_positions(3, 10)
-    positions_white = [
-        (elt.id, elt.win_count, elt.lose_count, elt.draw_count, elt.opening)
-        for elt in positions["white"]
-    ]
-    positions_black = [
-        (elt.id, elt.win_count, elt.lose_count, elt.draw_count, elt.opening)
-        for elt in positions["black"]
-    ]
-    return {"w": positions_white, "b": positions_black}, ""
+    return {
+        "w": positions["w"].to_tuples(),
+        "b": positions["b"].to_tuples(),
+    }, ""
 
 
 @callback(
     Output("board-svg", "data"),
     Output("opening", "children"),
     [
-        Input("dropdown", "value"),
-        Input("player-examples", "data"),
+        Input("position-index", "value"),
+        Input("positions", "data"),
         Input("color", "value"),
     ],
 )
-def load_board(value, examples, color):
-    if examples is None or value is None:
+def load_board(index, positions, color):
+    if positions is None or index is None:
         return f"data:image/png;base64,{BASE_IMG}", "Opening Name"
     else:
-        e = examples["w"] if color == "White" else examples["b"]
-        fen, _, _, _, opening = e[int(value)]
+        colored_position = positions["w"] if color == "White" else positions["b"]
+        fen, _, _, _, opening = colored_position[int(index)]
         board = chess.Board(fen)
         if color == "Black":
             board = board.transform(chess.flip_vertical).transform(
@@ -130,19 +131,19 @@ def update_img(src_img):
 
 
 @callback(
-    Output("graph", "figure"),
+    Output("results-graph", "figure"),
     [
-        Input("dropdown", "value"),
-        Input("player-examples", "data"),
+        Input("position-index", "value"),
+        Input("positions", "data"),
         Input("color", "value"),
     ],
 )
-def update_bar_chart(value, examples, color):
+def update_bar_chart(index, positions, color):
     win, lose, draw = 0, 0, 0
-    if examples is not None and value is not None:
-        e = examples["w"] if color == "White" else examples["b"]
-        ex = e[int(value)]
-        win, lose, draw = ex[1], ex[2], ex[3]
+    if positions is not None and index is not None:
+        colored_pos = positions["w"] if color == "White" else positions["b"]
+        current_pos = colored_pos[int(index)]
+        _, win, lose, draw, _ = current_pos
     df = pd.DataFrame(
         {
             "Result": ["Win", "Lose", "Draw"],
