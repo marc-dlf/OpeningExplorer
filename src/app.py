@@ -1,5 +1,5 @@
-# Run this app with `python app.py` and
-# visit http://127.0.0.1:8050/ in your web browser.
+"""Dash app with the Opening Explorer."""
+from typing import List, Dict, Tuple, TypeVar
 
 from cairosvg import svg2png
 import chess
@@ -8,10 +8,12 @@ from dash import Dash, Input, Output, State, callback, ctx, dcc, html
 import dash_bootstrap_components as dbc
 import pandas as pd
 import plotly.express as px
+from plotly.graph_objects import Figure
 import pybase64
 
 import src.config as config
-from src.explorer.game_tree import GameTree
+from src.explorer.game_tree import load_tree_multiproc
+from src.explorer.game_tree import Result
 
 app = Dash(__name__, external_stylesheets=[dbc.themes.LUX])
 
@@ -88,12 +90,25 @@ app.layout = html.Div(
     Input("submit-val", "n_clicks"),
     State("playername", "value"),
 )
-def on_click(n_clicks, value):
+def on_click(n_clicks: int, value: str) -> Tuple[Dict[str, Result.T], str]:
+    """
+    Update the positions in the explorer when a new username is submited.
+
+        Parameters:
+            n_clicks (int) : The number of time the button was pressed, actually not
+                used in the function but necessary to trigger the callback.
+            value (str) : Username for which we explore opening.
+
+        Returns:
+            positions : Dictionnary with positions to explore.
+            loading (str) : Empty string for the loading component.
+    """
     if value is None:
         return None, ""
-    gt = GameTree()
-    gt.load_tree(value, 14, config.START_MONTH, config.END_MONTH)
-    positions = gt.get_worse_k_positions(3, 10)
+    gt = load_tree_multiproc(
+        config.N_PROCS, value, config.MAX_DEPTH, config.START_MONTH, config.END_MONTH
+    )
+    positions = gt.get_worse_k_positions(config.N_GAMES_THRESHOLD, config.N_POSITIONS)
     return {
         "w": positions["w"].to_tuples(),
         "b": positions["b"].to_tuples(),
@@ -109,7 +124,21 @@ def on_click(n_clicks, value):
         Input("color", "value"),
     ],
 )
-def load_board(index, positions, color):
+def load_board(
+    index: str, positions: Dict[str, Result.T], color: str
+) -> Tuple[str, str]:
+    """
+    Load the board svg in Store and returns opening name to be displayed.
+
+        Parameters:
+            index (str) : The index for the position selected.
+            positions (Dict[str, Result.T]) : Dictionnary with positions to explore.
+            color (str) : Selected color.
+
+        Returns:
+            svg (str) : SVG image of the board.
+            opening (str) : Opening name.
+    """
     if positions is None or index is None:
         return f"data:image/png;base64,{BASE_IMG}", "Opening Name"
     else:
@@ -126,7 +155,16 @@ def load_board(index, positions, color):
 
 
 @callback(Output("board", "src"), Input("board-svg", "data"))
-def update_img(src_img):
+def update_img(src_img: str) -> str:
+    """
+    Update the svg inside the Img component.
+
+        Parameters:
+            src_img (str) : SVG image of the board.
+
+        Returns:
+            src_img (str) : SVG image of the board.
+    """
     return src_img
 
 
@@ -138,7 +176,18 @@ def update_img(src_img):
         Input("color", "value"),
     ],
 )
-def update_bar_chart(index, positions, color):
+def update_bar_chart(index: str, positions: Dict[str, Result.T], color: str) -> Figure:
+    """
+    Update the bar chart with position's statistics.
+
+        Parameters:
+            index (str) : The index for the position selected.
+            positions (Dict[str, Result.T]) : Dictionnary with positions to explore.
+            color (str) : Selected color.
+
+        Returns:
+            fig (Figure) : Bar chart with position's statistics.
+    """
     win, lose, draw = 0, 0, 0
     if positions is not None and index is not None:
         colored_pos = positions["w"] if color == "White" else positions["b"]
