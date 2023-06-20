@@ -17,7 +17,7 @@ from src.explorer.game_tree import Result
 
 app = Dash(__name__, external_stylesheets=[dbc.themes.LUX])
 
-# Pre loading base board
+# Pre loading base board.
 BASE_BOARD = chess.Board()
 BASE_SVG = chess.svg.board(BASE_BOARD, size=500)
 BASE_IMG = pybase64.b64encode(svg2png(bytestring=BASE_SVG)).decode()
