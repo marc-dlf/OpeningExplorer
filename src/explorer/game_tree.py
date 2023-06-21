@@ -1,11 +1,10 @@
-"""
-Contains the GameTree class which goes through games and count the number of wins,draws,
-losses per position.
-"""
+"""GameTree class which holds count of number of wins,draws,losses per position."""
 
+from __future__ import annotations
 import queue
 from functools import reduce
 from typing import List, Tuple, Dict, TypeVar
+
 
 import chess
 
@@ -15,11 +14,43 @@ from src.explorer.position_node import PositionNode
 
 
 class GameTree:
+    """GameTree class which holds count of number of wins,draws,losses per position.
+
+    Contains two dictionaries, one for which the analysed player (which will be called
+    Hero from now on) has white pieces and the other black pieces.
+    Dictionary's keys are unique positions which corresponds to:
+        1.the positions of pieces on the board
+        2.which player played the last move.
+    Dictionary's values corresponds to instances of PositionNode which encapsulate
+    information for the given unique position (opening name,result count and link
+    to games).
+    ...
+
+    Attributes
+    ----------
+    white (Dict[Tuple[str,bool],PositionNode]) : Position dictionary for white.
+    black (Dict[Tuple[str,bool],PositionNode])  : Position dictionary for black.
+    """
+
     def __init__(self):
+        """Construct an empty GameTree."""
         self.white = {}
         self.black = {}
 
-    def __add__(self, other):
+    def __add__(self, other: GameTree) -> GameTree:
+        """Add operator for GameTree.
+
+        For each node_id in other trees, if the node_id is also in the similar tree of
+        self, nodes are added, else the node is added to self tree.
+
+        Parameters
+        ----------
+            other (GameTree) : GameTree
+                GameTree to add to self.
+
+        Returns:
+            self (GameTree) : Updated GameTree.
+        """
         for node_id, position in other.white.items():
             if node_id in self.white.keys():
                 self.white[node_id] += position
@@ -35,31 +66,82 @@ class GameTree:
         return self
 
     @classmethod
-    def from_pgn_list(cls, pgn_list, max_depth):
+    def from_pgn_list(cls, pgn_list: List[PGN], max_depth: int) -> GameTree:
+        """Instantiate a GameTree instance from a PGN list.
+
+        Parameters
+        ----------
+            pgn_list : List[PGN]
+                A list containing all the PGNs of Hero from csv.
+            max_depth : int
+                Maximum number of moves in the game used to build tree.
+
+        Returns:
+            tree (GameTree) : GameTree from loaded PGNs.
+        """
         tree = cls()
         for pgn in pgn_list:
             tree.add_pgn_to_tree(pgn, max_depth)
         return tree
 
-    def load_tree(self, username, max_depth, start_month, end_month, csv_path=None):
+    def load_tree(
+        self,
+        username: str,
+        max_depth: int,
+        start_month: str,
+        end_month: str,
+        csv_path: str = None,
+    ):
+        """Load a tree from a username and a time period or a csv.
+
+        Parameters
+        ----------
+            username : str
+                Username of Hero.
+            max_depth : int
+                Maximum number of moves in the game used to build tree.
+            start_month : str
+                Start month in format YYYY-MM (eg: 2023-01).
+            end_month : str
+                End month in format YYYY-MM (eg: 2023-01).
+            csv_path : str
+                Path to a csv file from which the player history is loaded in priority.
+
+        """
         player = Player(username)
         player.load_player_history(start_month, end_month, csv_path)
         for pgn in player.pgn_list:
             self.add_pgn_to_tree(pgn, max_depth)
 
-    def add_pgn_to_tree(self, pgn: PGN, max_depth):
-        board = chess.Board()
+    def add_pgn_to_tree(self, pgn: PGN, max_depth: int):
+        """Increment result of all nodes of the relevant trees corresponding to unique positions found in the game.
+
+        Parameters
+        ----------
+            pgn : PGN
+                Individual PGN instance
+            max_depth : int
+                Maximum number of moves in the game used to build tree.
+
+        """
+        # Choosing the tree depending on the pgn color attribte.
         tree = self.white if pgn.color == "white" else self.black
+        # Spliting game string to get a list of individual moves.
         game = pgn.game.split(" ")
+        # If hero has white pieces, we consider that his opponent played the last move for init.
+        last_move_hero = pgn.color == "black"
+        # Number of moves played.
         depth = 0
-        hero_move = not (pgn.color == "white")
+        # Initial chess board.
+        board = chess.Board()
         visited = set()
+        # Iterating through unique positions encountered in the game to increment their counters.
         while depth <= max_depth and depth < len(game):
             move = game[depth]
             fen = board.fen()
-            node_id = (fen, hero_move)
+            node_id = (fen, last_move_hero)
             if node_id not in tree.keys():
-                node = PositionNode(fen, hero_move, pgn.opening)
+                node = PositionNode(fen, last_move_hero, pgn.opening)
                 tree[node_id] = node
             else:
                 node = tree[node_id]
@@ -71,21 +153,42 @@ class GameTree:
                 board.push_san(move)
             except:
                 raise ValueError(f"{depth},{move},{pgn.game,board.fen(),pgn.link}")
-            hero_move = not hero_move
-            next_id = (board.fen(), hero_move)
+            # Inverting the variable : if hero just played, he made the last move.
+            last_move_hero = not last_move_hero
+            next_id = (board.fen(), last_move_hero)
             node.children.add(next_id)
             depth += 1
 
-    def get_worse_k_positions_from_tree(self, tree, color, thresh, k):
-        init_board = chess.Board()
+    def get_worse_k_positions_from_tree(
+        self, tree: GameTree, color: str, thresh: int, k: int
+    ) -> Result:
+        """Extract from the tree the worst k positions with respect to win rate.
+
+        Parameters
+        ----------
+            tree : GameTree
+                Tree with all positions node with incremented counters.
+            color : str
+                Color of hero's pieces.
+            thresh : int
+                Minimal number of games at a given node to be considered in the final solution.
+            k: int
+                Number of positions to extract.
+
+        Returns:
+            out (Result) : All the positions to be analyzed for this tree.
+        """
+        board = chess.Board()
+        last_move_hero = color == "black"
+        node_id = (board.fen(), last_move_hero)
+        # Position queue for tree traversal.
         pos_q = queue.Queue()
+        # Priority Queue where the positions with minimal win rates will be on top.
         output_q = queue.PriorityQueue()
         visited = set()
-        hero_move = not (color == "white")
-        node_id = (init_board.fen(), hero_move)
         pos_q.put(node_id)
         visited.add(node_id)
-
+        # Traversing the game tree to add positions node to priority queue with win rate as priority value.
         while not pos_q.empty():
             node_id = pos_q.get()
             pos_node = tree[node_id]
@@ -94,17 +197,31 @@ class GameTree:
             for child_id in pos_node.children:
                 if child_id in tree.keys():
                     child = tree[child_id]
+                    # Stopping exploration once we reach a position with a number of games below threshold.
                     if child_id not in visited and child.n_games() >= thresh:
                         pos_q.put(child_id)
             visited.add(node_id)
 
         out, i = [], 0
+        # Unpacking priority queue to get top k elements (with worst win rates).
         while not output_q.empty() and i < k:
             _, node_id = output_q.get()
             out.append(tree[node_id])
-        return DashInput(out)
+        return Result(out)
 
-    def get_worse_k_positions(self, thresh, k):
+    def get_worse_k_positions(self, thresh: int, k: int):
+        """Get worse k positions for white and black trees.
+
+        Parameters
+        ----------
+            thresh : int
+                Minimal number of games at a given node to be considered in the final solution.
+            k: int
+                Number of positions to extract.
+
+        Returns:
+            out (Dict[str:Result]) : Worst k positions in terms of win rate of white and black tree in a dict.
+        """
         return {
             "w": self.get_worse_k_positions_from_tree(self.white, "white", thresh, k),
             "b": self.get_worse_k_positions_from_tree(self.black, "black", thresh, k),
@@ -112,8 +229,37 @@ class GameTree:
 
 
 def load_tree_multiproc(
-    n_procs, username, max_depth, start_month, end_month, csv_path=None
+    n_procs: int,
+    username: str,
+    max_depth: int,
+    start_month: str,
+    end_month: str,
+    csv_path: str = None,
 ):
+    """Multiprocessing version of the load_tree method.
+
+    Leverages the fact that we can parallelize the tree building and then due to the
+    type of operations performed, it is possible to apply a reduce method to get our
+    final output.
+
+    Parameters
+    ----------
+        n_procs : int
+            Number of processors to be used.
+        username : str
+            Username of Hero.
+        max_depth : int
+            Maximum number of moves in the game used to build tree.
+        start_month : str
+            Start month in format YYYY-MM (eg: 2023-01).
+        end_month : str
+            End month in format YYYY-MM (eg: 2023-01).
+        csv_path : str
+            Path to a csv file from which the player history is loaded in priority.
+
+    Returns:
+        out (GameTree):  An initiated GameTree with Hero's games.
+    """
     from multiprocessing import Pool
 
     pool = Pool(n_procs)
