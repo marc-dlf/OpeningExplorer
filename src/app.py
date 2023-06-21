@@ -4,6 +4,7 @@ from typing import Dict, Tuple
 from cairosvg import svg2png
 import chess
 import chess.svg
+import dash
 from dash import Dash, Input, Output, State, callback, dcc, html
 import dash_bootstrap_components as dbc
 import pandas as pd
@@ -24,9 +25,23 @@ BASE_IMG = pybase64.b64encode(svg2png(bytestring=BASE_SVG)).decode()
 
 app.layout = html.Div(
     children=[
-        html.H1(
-            children="Opening Weaknesses Explorer",
-            style={"textAlign": "center", "margin-top": "50px"},
+        html.Div(
+            children=[
+                html.Img(
+                    src=dash.get_asset_url("logo.png"), style={"margin-right": "30px"}
+                ),
+                html.H1(
+                    children="Opening Weaknesses Explorer",
+                    style={"textAlign": "left", "margin-top": "15px"},
+                ),
+            ],
+            style={
+                "display": "flex",
+                "flex-direction": "row",
+                "margin-top": "30px",
+                "border-bottom": "3px solid grey",
+                "padding-bottom": "20px",
+            },
         ),
         html.Div(
             children=[
@@ -38,9 +53,7 @@ app.layout = html.Div(
                             children="Opening name",
                             style={"textAlign": "center"},
                         ),
-                        html.Img(
-                            id="board",
-                        ),
+                        html.Img(id="board", style={"margin-bottom": "20px"}),
                         html.Div(
                             children=[
                                 # Input player username to search
@@ -60,7 +73,7 @@ app.layout = html.Div(
                                     ["White", "Black"], "White", id="color"
                                 ),
                             ],
-                            style={"display": "flex", "margin-top": "30px"},
+                            style={"display": "flex"},
                         ),
                     ],
                     style={

@@ -4,6 +4,8 @@ A Dash applications which enables to search for a Chess.com usernames and get th
 positions where the player has the worst win rate in order to spot areas of improvement
 for opening training. 
 
+![Alt text](/img/dash_screenshot.png?raw=true)
+
 ## Setup
 
 Inside the repo create a data folder by running the following command in your terminal:
