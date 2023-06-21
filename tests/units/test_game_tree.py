@@ -16,7 +16,7 @@ def test_valid_win_ratio(username, csv_path):
 
     assert node.res_cnt.win == 37
     assert node.res_cnt.lose == 32
-    assert node.player_to_move == True
+    assert node.last_move_hero == True
 
     # Validate results as black
     node = game_tree.black[(board.fen(), False)]
@@ -24,7 +24,7 @@ def test_valid_win_ratio(username, csv_path):
     assert node.res_cnt.win == 20
     assert node.res_cnt.lose == 17
     assert node.res_cnt.draw == 3
-    assert node.player_to_move == False
+    assert node.last_move_hero == False
 
 
 def test_valid_children(username, csv_path):
