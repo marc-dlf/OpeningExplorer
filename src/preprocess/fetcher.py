@@ -52,16 +52,15 @@ class Fetcher:
         """
         year_str, month_str = year_month.split("-")
         address = f"{ADDRESS_ROOT}/{self.username}/games/{year_str}/{month_str}/pgn"
-        r = requests.get(address)
+        req = requests.get(address, timeout=5)
         # API didn't return anything
-        if r.status_code != 200:
-            r.raise_for_status()
+        if req.status_code != 200:
+            req.raise_for_status()
         # API returned a file of PGN
-        pgn = r.text
+        pgn = req.text
         if len(pgn) == 0:
             return None
-        else:
-            return pgn
+        return pgn
 
     def download_history(self, start, end):
         """

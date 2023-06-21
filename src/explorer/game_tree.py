@@ -45,7 +45,7 @@ class GameTree:
 
         Parameters
         ----------
-            other (GameTree) : GameTree
+            other : GameTree
                 GameTree to add to self.
 
         Returns:
@@ -108,13 +108,14 @@ class GameTree:
                 Path to a csv file from which the player history is loaded in priority.
 
         """
+        # pylint: disable=line-too-long
         player = Player(username)
         player.load_player_history(start_month, end_month, csv_path)
         for pgn in player.pgn_list:
             self.add_pgn_to_tree(pgn, max_depth)
 
     def add_pgn_to_tree(self, pgn: PGN, max_depth: int):
-        """Increment result of all nodes of the relevant trees corresponding to unique positions found in the game.
+        """Increment result all nodes of unique positions found in the game.
 
         Parameters
         ----------
@@ -124,6 +125,7 @@ class GameTree:
                 Maximum number of moves in the game used to build tree.
 
         """
+        # pylint: disable=line-too-long
         # Choosing the tree depending on the pgn color attribte.
         tree = self.white if pgn.color == "white" else self.black
         # Spliting game string to get a list of individual moves.
@@ -178,6 +180,7 @@ class GameTree:
         Returns:
             out (Result) : All the positions to be analyzed for this tree.
         """
+        # pylint: disable=line-too-long
         board = chess.Board()
         last_move_hero = color == "black"
         node_id = (board.fen(), last_move_hero)
@@ -192,7 +195,7 @@ class GameTree:
         while not pos_q.empty():
             node_id = pos_q.get()
             pos_node = tree[node_id]
-            if (not pos_node.player_to_move) and (node_id not in visited):
+            if (not pos_node.last_move_hero) and (node_id not in visited):
                 output_q.put((pos_node.win_rate(), node_id))
             for child_id in pos_node.children:
                 if child_id in tree.keys():
@@ -222,6 +225,7 @@ class GameTree:
         Returns:
             out (Dict[str:Result]) : Worst k positions in terms of win rate of white and black tree in a dict.
         """
+        # pylint: disable=line-too-long
         return {
             "w": self.get_worse_k_positions_from_tree(self.white, "white", thresh, k),
             "b": self.get_worse_k_positions_from_tree(self.black, "black", thresh, k),
@@ -260,6 +264,7 @@ def load_tree_multiproc(
     Returns:
         out (GameTree):  An initiated GameTree with Hero's games.
     """
+    # pylint: disable=too-many-arguments
     from multiprocessing import Pool
 
     pool = Pool(n_procs)
@@ -278,13 +283,17 @@ def load_tree_multiproc(
 
 
 class Result:
+    """Wrapper for Result."""
+
     T = TypeVar("T")
     T: T = Tuple[str, int, int, int, int, str]
 
     def __init__(self, position_node_list: List[PositionNode]):
+        """Construct Result."""
         self.positions = position_node_list
 
     def to_tuples(self) -> T:
+        """Convert Result to tuples which can be stored in Dash app Store."""
         return [
             (pos.fen, pos.res_cnt.win, pos.res_cnt.lose, pos.res_cnt.draw, pos.opening)
             for pos in self.positions

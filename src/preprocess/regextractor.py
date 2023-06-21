@@ -67,12 +67,11 @@ class RegExtractor:
         result = re.findall(cls.RESULT_RE, pgn_txt)[0]
         if result == "1/2-1/2":
             return "draw"
-        elif (result == "1-0" and color == "white") or (
+        if (result == "1-0" and color == "white") or (
             result == "0-1" and color == "black"
         ):
             return "win"
-        else:
-            return "lose"
+        return "lose"
 
     @classmethod
     def get_game(cls, pgn_txt: str) -> str:

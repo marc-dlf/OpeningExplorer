@@ -1,17 +1,17 @@
 """Dash app with the Opening Explorer."""
-from typing import List, Dict, Tuple, TypeVar
+from typing import Dict, Tuple
 
 from cairosvg import svg2png
 import chess
 import chess.svg
-from dash import Dash, Input, Output, State, callback, ctx, dcc, html
+from dash import Dash, Input, Output, State, callback, dcc, html
 import dash_bootstrap_components as dbc
 import pandas as pd
 import plotly.express as px
 from plotly.graph_objects import Figure
 import pybase64
 
-import src.config as config
+from src import config
 from src.explorer.game_tree import load_tree_multiproc
 from src.explorer.game_tree import Result
 
@@ -90,13 +90,11 @@ app.layout = html.Div(
     Input("submit-val", "n_clicks"),
     State("playername", "value"),
 )
-def on_click(n_clicks: int, value: str) -> Tuple[Dict[str, Result.T], str]:
+def on_click(_: int, value: str) -> Tuple[Dict[str, Result.T], str]:
     """
     Update the positions in the explorer when a new username is submited.
 
         Parameters:
-            n_clicks (int) : The number of time the button was pressed, actually not
-                used in the function but necessary to trigger the callback.
             value (str) : Username for which we explore opening.
 
         Returns:
@@ -105,10 +103,12 @@ def on_click(n_clicks: int, value: str) -> Tuple[Dict[str, Result.T], str]:
     """
     if value is None:
         return None, ""
-    gt = load_tree_multiproc(
+    game_tree = load_tree_multiproc(
         config.N_PROCS, value, config.MAX_DEPTH, config.START_MONTH, config.END_MONTH
     )
-    positions = gt.get_worse_k_positions(config.N_GAMES_THRESHOLD, config.N_POSITIONS)
+    positions = game_tree.get_worse_k_positions(
+        config.N_GAMES_THRESHOLD, config.N_POSITIONS
+    )
     return {
         "w": positions["w"].to_tuples(),
         "b": positions["b"].to_tuples(),
@@ -141,17 +141,14 @@ def load_board(
     """
     if positions is None or index is None:
         return f"data:image/png;base64,{BASE_IMG}", "Opening Name"
-    else:
-        colored_position = positions["w"] if color == "White" else positions["b"]
-        fen, _, _, _, opening = colored_position[int(index)]
-        board = chess.Board(fen)
-        if color == "Black":
-            board = board.transform(chess.flip_vertical).transform(
-                chess.flip_horizontal
-            )
-        svg = chess.svg.board(board, size=500)
-        img = pybase64.b64encode(svg2png(bytestring=svg)).decode()
-        return f"data:image/png;base64,{img}", opening
+    colored_position = positions["w"] if color == "White" else positions["b"]
+    fen, _, _, _, opening = colored_position[int(index)]
+    board = chess.Board(fen)
+    if color == "Black":
+        board = board.transform(chess.flip_vertical).transform(chess.flip_horizontal)
+    svg = chess.svg.board(board, size=500)
+    img = pybase64.b64encode(svg2png(bytestring=svg)).decode()
+    return f"data:image/png;base64,{img}", opening
 
 
 @callback(Output("board", "src"), Input("board-svg", "data"))
@@ -193,13 +190,13 @@ def update_bar_chart(index: str, positions: Dict[str, Result.T], color: str) -> 
         colored_pos = positions["w"] if color == "White" else positions["b"]
         current_pos = colored_pos[int(index)]
         _, win, lose, draw, _ = current_pos
-    df = pd.DataFrame(
+    result_df = pd.DataFrame(
         {
             "Result": ["Win", "Lose", "Draw"],
             "Count": [win, lose, draw],
         }
     )
-    fig = px.bar(df, x="Count", y="Result", color="Result")
+    fig = px.bar(result_df, x="Count", y="Result", color="Result")
     return fig
 
 
