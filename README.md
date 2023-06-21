@@ -31,3 +31,8 @@ name, if the csv containing his games is not already present in the data folder 
 will be constructed from the Fetcher class which can take some time. But once it 
 is done, when querying the same username it is faster. 
 
+## Unit testing
+
+To run unit tests:
+
+```poetry run pytest```
